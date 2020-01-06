@@ -2,7 +2,6 @@ import models.NeuralNetworkModelConfiguration;
 import org.apache.log4j.BasicConfigurator;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
 import org.datavec.api.split.FileSplit;
-import org.datavec.image.loader.NativeImageLoader;
 import org.datavec.image.recordreader.ImageRecordReader;
 import org.deeplearning4j.api.storage.StatsStorage;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
@@ -16,17 +15,15 @@ import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
-import java.util.Random;
+import java.util.Map;
+
+import static utils.DataLoader.loadDataFiles;
 
 public class PneumoniaDetection {
 
     private final static Logger log = LoggerFactory.getLogger(PneumoniaDetection.class);
-    private final static String TEST_PATH = "test";
-    private final static String TRAIN_PATH = "train";
 
     private final static int HEIGHT = 224;
     private final static int WIDTH = 224;
@@ -36,88 +33,60 @@ public class PneumoniaDetection {
     private final static int SEED = 123;
     private final static int LABELS = 3;
 
+    private final static String TEST = "test";
+    private final static String TRAIN = "train";
+
 
     public static void main(String[] args) throws IOException, InterruptedException {
 
         BasicConfigurator.configure();
-        Random randNumGen = new Random(SEED);
 
-        // Define the File Paths
+        log.info("--------LOAD DATA--------");
+        final Map<String, FileSplit> data = loadDataFiles();
 
-        ClassLoader loader = PneumoniaDetection.class.getClassLoader();
-        final File trainData = new File(Objects.requireNonNull(loader.getResource(TEST_PATH)).getFile());
-        final File testData = new File(Objects.requireNonNull(loader.getResource(TRAIN_PATH)).getFile());
-
-        final FileSplit train = new FileSplit(trainData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
-        final FileSplit test = new FileSplit(testData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
-
-        // Extract the parent path as the image label
         ParentPathLabelGenerator labelMaker = new ParentPathLabelGenerator();
-
         ImageRecordReader imageRecordReader = new ImageRecordReader(HEIGHT, WIDTH, CHANNELS, labelMaker);
+        imageRecordReader.initialize(data.get(TRAIN));
 
-        // Initialize the record reader
-        // add a listener, to extract the name
-        imageRecordReader.initialize(train);
-        //imageRecordReader.setListeners(new LogRecordListener());
+        DataSetIterator trainDataSetIterator = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, LABELS);
 
-        // DataSet Iterator
-        DataSetIterator dataIter = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, LABELS);
-
-        // Scale pixel values to 0-1
-//        DataNormalization scaler = new ImagePreProcessingScaler(0, 1);
-//        scaler.fit(dataIter);
-//        dataIter.setPreProcessor(scaler);
-
-
+        log.info("--------BUILD MODEL--------");
         NeuralNetworkModelConfiguration neuralNetworkModelConfiguration
                 = new NeuralNetworkModelConfiguration(HEIGHT, WIDTH, CHANNELS, SEED, LABELS);
-
-        // Build Our Neural Network
-        log.info("-------------BUILD MODEL-------------");
         MultiLayerNetwork multiLayerNetwork = new MultiLayerNetwork(neuralNetworkModelConfiguration.getAlexNet());
-
 
         applyWebUI(multiLayerNetwork);
 
-
-        log.info("TRAIN MODEL");
-
-        multiLayerNetwork.fit(dataIter, EPOCHS);
+        log.info("--------TRAIN MODEL--------");
+        multiLayerNetwork.fit(trainDataSetIterator, EPOCHS);
 
 
-        log.info("EVALUATE MODEL");
+        log.info("--------EVALUATE MODEL--------");
         imageRecordReader.reset();
-        imageRecordReader.initialize(test);
-        DataSetIterator dataSetIterator = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, LABELS);
-//        scaler.fit(dataSetIterator);
-//        dataSetIterator.setPreProcessor(scaler);
+        imageRecordReader.initialize(data.get(TEST));
+        DataSetIterator testDataSetIterator = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, LABELS);
 
         log.info(imageRecordReader.getLabels().toString());
 
-        // Create Eval object with 10 possible classes
         Evaluation eval = new Evaluation(LABELS);
 
-        // Evaluate the network
-        while (dataSetIterator.hasNext()) {
-            DataSet next = dataSetIterator.next();
+        while (testDataSetIterator.hasNext()) {
+            DataSet next = testDataSetIterator.next();
             INDArray output = multiLayerNetwork.output(next.getFeatures());
-            // Compare the Feature Matrix from the multiLayerNetwork
-            // with the labels from the RecordReader
             eval.eval(next.getLabels(), output);
         }
 
         log.info(eval.stats());
 
-        log.info("----------CLASSIFICATION OF TEST DATA-----------");
+        log.info("--------CLASSIFY--------");
 
         imageRecordReader.reset();
-        imageRecordReader.initialize(test);
-        dataSetIterator = new RecordReaderDataSetIterator(imageRecordReader, PneumoniaDetection.BATCH_SIZE, 1, PneumoniaDetection.LABELS);
+        imageRecordReader.initialize(data.get(TEST));
+        testDataSetIterator = new RecordReaderDataSetIterator(imageRecordReader, PneumoniaDetection.BATCH_SIZE, 1, PneumoniaDetection.LABELS);
 
         final List<String> labels = imageRecordReader.getLabels();
 
-        ClassificationResult classificationResult = new ClassificationResult(labels, multiLayerNetwork, dataSetIterator);
+        ClassificationResult classificationResult = new ClassificationResult(labels, multiLayerNetwork, testDataSetIterator);
 
         classificationResult.printClassificationStatus();
     }
@@ -130,6 +99,10 @@ public class PneumoniaDetection {
         uiServer.attach(statsStorage);
 
         multiLayerNetwork.setListeners(new StatsListener(statsStorage));
+    }
+
+    private static void performEvaluation() {
+
     }
 
 }
