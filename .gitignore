@@ -74,3 +74,7 @@ fabric.properties
 *.png
 *.jpeg
 *.jpg
+
+*.exe
+*.dll
+*.jar
