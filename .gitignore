@@ -78,3 +78,6 @@ fabric.properties
 *.exe
 *.dll
 *.jar
+*.bin
+*.lock
+*.idea
