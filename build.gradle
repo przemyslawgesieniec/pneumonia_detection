@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+}
+
+group 'pl.gesieniec'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    compile "org.deeplearning4j:deeplearning4j-core:1.0.0-beta4"
+    compile "org.nd4j:nd4j-native-platform:1.0.0-beta4"
+    compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.29'
+    compile group: 'org.deeplearning4j', name: 'deeplearning4j-ui_2.10', version: '1.0.0-beta4'
+    compile group: 'org.deeplearning4j', name: 'deeplearning4j-zoo', version: '1.0.0-beta4'
+
+}
