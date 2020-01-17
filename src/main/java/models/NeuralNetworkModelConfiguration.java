@@ -11,19 +11,27 @@ import org.deeplearning4j.nn.conf.inputs.InputType;
 import org.deeplearning4j.nn.conf.layers.ActivationLayer;
 import org.deeplearning4j.nn.conf.layers.BatchNormalization;
 import org.deeplearning4j.nn.conf.layers.ConvolutionLayer;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
 import org.deeplearning4j.nn.conf.layers.DropoutLayer;
 import org.deeplearning4j.nn.conf.layers.GlobalPoolingLayer;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.conf.layers.PoolingType;
 import org.deeplearning4j.nn.conf.layers.SubsamplingLayer;
+import org.deeplearning4j.nn.graph.ComputationGraph;
+import org.deeplearning4j.nn.transferlearning.FineTuneConfiguration;
+import org.deeplearning4j.nn.transferlearning.TransferLearning;
 import org.deeplearning4j.nn.weights.WeightInit;
+import org.deeplearning4j.zoo.ZooModel;
 import org.deeplearning4j.zoo.model.AlexNet;
 import org.deeplearning4j.zoo.model.LeNet;
-import org.deeplearning4j.zoo.model.Xception;
+import org.deeplearning4j.zoo.model.ResNet50;
+import org.deeplearning4j.zoo.model.VGG16;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.learning.config.AdaDelta;
 import org.nd4j.linalg.learning.config.IUpdater;
+import org.nd4j.linalg.learning.config.Nesterovs;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
+import java.io.IOException;
 
 public class NeuralNetworkModelConfiguration {
 
@@ -60,6 +68,48 @@ public class NeuralNetworkModelConfiguration {
                       .numClasses(numClasses)
                       .build()
                       .conf();
+    }
+
+    private ZooModel getResNet50() {
+        return ResNet50.builder()
+                       .inputShape(new int[]{channels, width, height})
+                       .seed(seed)
+                       .numClasses(numClasses)
+                       .build();
+    }
+
+    private ZooModel getVGG16() {
+        return VGG16.builder()
+//                    .inputShape(new int[]{channels, width, height})
+//                    .seed(seed)
+//                    .numClasses(numClasses)
+                    .build();
+    }
+
+    private FineTuneConfiguration getFineTuneConfiguration() {
+        return new FineTuneConfiguration.Builder()
+                .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+                .updater(new Nesterovs(5e-5))
+                .seed(seed)
+                .build();
+    }
+
+    public ComputationGraph getVggNetConfig() throws IOException {
+
+        ZooModel zooModel = getVGG16();
+        ComputationGraph vgg = (ComputationGraph) zooModel.initPretrained();
+
+        return new TransferLearning.GraphBuilder(vgg)
+                .fineTuneConfiguration(getFineTuneConfiguration())
+                .setFeatureExtractor("fc2")
+                .removeVertexKeepConnections("predictions")
+                .addLayer("predictions",
+                        new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+                                .nIn(4096).nOut(numClasses)
+                                .weightInit(new NormalDistribution(0,0.2*(2.0/(4096+numClasses)))) //This weight init dist gave better results than Xavier
+                                .activation(Activation.SOFTMAX).build(),
+                        "fc2")
+                .build();
     }
 
     public MultiLayerConfiguration getLeNet() {
