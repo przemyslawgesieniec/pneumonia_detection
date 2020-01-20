@@ -34,7 +34,7 @@ public class PneumoniaDetectionTransferLearning {
     private final static int WIDTH = 224;
     private final static int CHANNELS = 3;
     private final static int BATCH_SIZE = 100;
-    private final static int EPOCHS = 100;
+    private final static int EPOCHS = 1;
     private final static int SEED = 123;
     private final static int LABELS = 3;
 
@@ -68,7 +68,7 @@ public class PneumoniaDetectionTransferLearning {
 //                new TransferLearningHelper(vggNetConfig);
 
 //        applyWebUI(transferLearningHelper);
-        applyWebUI(vggNetConfig);
+//        applyWebUI(vggNetConfig);
 //        log.info(transferLearningHelper.unfrozenGraph().summary());
 
         log.info(vggNetConfig.summary());
@@ -100,7 +100,7 @@ public class PneumoniaDetectionTransferLearning {
         log.info("--------CLASSIFY--------");
         final List<String> labels = imageRecordReader.getLabels();
 
-        modelPredict(vggNetConfig,testDataSetIterator);
+//        modelPredict(vggNetConfig,testDataSetIterator);
 
 //        final ClassificationResult classificationResult = new ClassificationResult(labels, transferLearningHelper.unfrozenGraph().pr, testDataSetIterator);
 //        modelPredict(transferLearningHelper.unfrozenGraph(), testDataSetIterator);
@@ -121,36 +121,36 @@ public class PneumoniaDetectionTransferLearning {
         vggNet.setListeners(new StatsListener(statsStorage));
     }
 
-    private static void modelPredict(ComputationGraph model,
-                                     DataSetIterator iterator) {
-        int sumCount = 0;
-        int correctCount = 0;
-
-        while (iterator.hasNext()) {
-            final DataSet next = iterator.next();
-            INDArray[] output = model.output(next.getFeatures());
-            final INDArray labels = next.getLabels();
-            int dataNum = Math.min(BATCH_SIZE, output[0].rows());
-            for (int dataIndex = 0; dataIndex < dataNum; dataIndex++) {
-                StringBuilder reLabel = new StringBuilder();
-                StringBuilder peLabel = new StringBuilder();
-                INDArray preOutput;
-                INDArray realLabel;
-                for (int digit = 0; digit < 6; digit++) {
-                    preOutput = output[digit].getRow(dataIndex);
-                    peLabel.append(Nd4j.argMax(preOutput, 1).getInt(0));
-                    realLabel = labels.getRow(dataIndex);
-                    reLabel.append(Nd4j.argMax(realLabel, 1).getInt(0));
-                }
-                boolean equals = peLabel.toString().equals(reLabel.toString());
-                if (equals) {
-                    correctCount++;
-                }
-                sumCount++;
-                log.info("real image {}  prediction {} status {}", reLabel.toString(), peLabel.toString(), equals);
-            }
-        }
-        iterator.reset();
-        System.out.println("validate result : sum count =" + sumCount + " correct count=" + correctCount);
-    }
+//    private static void modelPredict(ComputationGraph model,
+//                                     DataSetIterator iterator) {
+//        int sumCount = 0;
+//        int correctCount = 0;
+//
+//        while (iterator.hasNext()) {
+//            final DataSet next = iterator.next();
+//            INDArray[] output = model.output(next.getFeatures());
+//            final INDArray labels = next.getLabels();
+//            int dataNum = Math.min(BATCH_SIZE, output[0].rows());
+//            for (int dataIndex = 0; dataIndex < dataNum; dataIndex++) {
+//                StringBuilder reLabel = new StringBuilder();
+//                StringBuilder peLabel = new StringBuilder();
+//                INDArray preOutput;
+//                INDArray realLabel;
+//                for (int digit = 0; digit < 6; digit++) {
+//                    preOutput = output[digit].getRow(dataIndex);
+//                    peLabel.append(Nd4j.argMax(preOutput, 1).getInt(0));
+//                    realLabel = labels.getRow(dataIndex);
+//                    reLabel.append(Nd4j.argMax(realLabel, 1).getInt(0));
+//                }
+//                boolean equals = peLabel.toString().equals(reLabel.toString());
+//                if (equals) {
+//                    correctCount++;
+//                }
+//                sumCount++;
+//                log.info("real image {}  prediction {} status {}", reLabel.toString(), peLabel.toString(), equals);
+//            }
+//        }
+//        iterator.reset();
+//        System.out.println("validate result : sum count =" + sumCount + " correct count=" + correctCount);
+//    }
 }

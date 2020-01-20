@@ -13,6 +13,8 @@ import org.deeplearning4j.ui.storage.InMemoryStatsStorage;
 import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.evaluation.classification.ROCMultiClass;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
+import org.nd4j.linalg.dataset.api.preprocessor.DataNormalization;
+import org.nd4j.linalg.dataset.api.preprocessor.ImagePreProcessingScaler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
@@ -28,8 +30,8 @@ public class PneumoniaDetection {
     private final static int HEIGHT = 224;
     private final static int WIDTH = 224;
     private final static int CHANNELS = 1;
-    private final static int BATCH_SIZE = 100;
-    private final static int EPOCHS = 100;
+    private final static int BATCH_SIZE = 20;
+    private final static int EPOCHS = 1;
     private final static int SEED = 123;
     private final static int LABELS = 3;
 
@@ -53,10 +55,14 @@ public class PneumoniaDetection {
 
         final DataSetIterator trainDataSetIterator = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, LABELS);
 
+        DataNormalization scaler = new ImagePreProcessingScaler(0, 1);
+        scaler.fit(trainDataSetIterator);
+        trainDataSetIterator.setPreProcessor(scaler);
+
         log.info("--------BUILD MODEL--------");
         final NeuralNetworkModelConfiguration neuralNetworkModelConfiguration
                 = new NeuralNetworkModelConfiguration(HEIGHT, WIDTH, CHANNELS, SEED, LABELS);
-        final MultiLayerNetwork multiLayerNetwork = new MultiLayerNetwork(neuralNetworkModelConfiguration.getAlexNet());
+        final MultiLayerNetwork multiLayerNetwork = new MultiLayerNetwork(neuralNetworkModelConfiguration.getCustomNet());
 
         applyWebUI(multiLayerNetwork);
 
@@ -76,7 +82,7 @@ public class PneumoniaDetection {
         multiLayerNetwork.doEvaluation(testDataSetIterator, eval, roc);
 
         log.info(eval.stats());
-        EvaluationTools.exportRocChartsToHtmlFile(roc, new File("rocPlot.html"));
+        EvaluationTools.exportRocChartsToHtmlFile(roc, new File("rocPlotCustomNet.html"));
 
         log.info("--------CLASSIFY--------");
 
