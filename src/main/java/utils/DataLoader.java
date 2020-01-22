@@ -15,21 +15,22 @@ public class DataLoader {
 
     private final static int SEED = 123;
 
-    public static Map<String, FileSplit> loadDataFiles(){
-        final Random randNumGen = new Random(SEED);
-
+    public static Map<String, FileSplit> loadDataFiles() {
         final Map<String, FileSplit> data = new HashMap<>();
 
-        final ClassLoader loader = DataLoader.class.getClassLoader();
-        final File trainData = new File(Objects.requireNonNull(loader.getResource(TEST_PATH)).getFile());
-        final File testData = new File(Objects.requireNonNull(loader.getResource(TRAIN_PATH)).getFile());
+        final FileSplit train = getFileSplit(TEST_PATH);
+        final FileSplit test = getFileSplit(TRAIN_PATH);
 
-        final FileSplit train = new FileSplit(trainData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
-        final FileSplit test = new FileSplit(testData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
-
-        data.put("train",train);
-        data.put("test",test);
+        data.put("train", train);
+        data.put("test", test);
 
         return data;
+    }
+
+    private static FileSplit getFileSplit(final String path) {
+        final Random randNumGen = new Random(SEED);
+        final ClassLoader loader = DataLoader.class.getClassLoader();
+        final File file = new File(Objects.requireNonNull(loader.getResource(path)).getFile());
+        return new FileSplit(file, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
     }
 }

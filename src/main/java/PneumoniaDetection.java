@@ -30,8 +30,8 @@ public class PneumoniaDetection {
     private final static int HEIGHT = 224;
     private final static int WIDTH = 224;
     private final static int CHANNELS = 1;
-    private final static int BATCH_SIZE = 20;
-    private final static int EPOCHS = 1;
+    private final static int BATCH_SIZE = 15;
+    private final static int EPOCHS = 80;
     private final static int SEED = 123;
     private final static int LABELS = 3;
 
@@ -50,10 +50,12 @@ public class PneumoniaDetection {
         final Map<String, FileSplit> data = loadDataFiles();
 
         final ParentPathLabelGenerator labelMaker = new ParentPathLabelGenerator();
-        final ImageRecordReader imageRecordReader = new ImageRecordReader(HEIGHT, WIDTH, CHANNELS, labelMaker);
+        final ImageRecordReader imageRecordReader =
+                new ImageRecordReader(HEIGHT, WIDTH, CHANNELS, labelMaker);
         imageRecordReader.initialize(data.get(TRAIN));
 
-        final DataSetIterator trainDataSetIterator = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, LABELS);
+        final DataSetIterator trainDataSetIterator =
+                new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, LABELS);
 
         DataNormalization scaler = new ImagePreProcessingScaler(0, 1);
         scaler.fit(trainDataSetIterator);
@@ -62,12 +64,16 @@ public class PneumoniaDetection {
         log.info("--------BUILD MODEL--------");
         final NeuralNetworkModelConfiguration neuralNetworkModelConfiguration
                 = new NeuralNetworkModelConfiguration(HEIGHT, WIDTH, CHANNELS, SEED, LABELS);
-        final MultiLayerNetwork multiLayerNetwork = new MultiLayerNetwork(neuralNetworkModelConfiguration.getCustomNet());
+        final MultiLayerNetwork multiLayerNetwork =
+                new MultiLayerNetwork(neuralNetworkModelConfiguration.getCustomNet());
 
         applyWebUI(multiLayerNetwork);
 
         log.info("--------TRAIN MODEL--------");
-        multiLayerNetwork.fit(trainDataSetIterator, EPOCHS);
+        for (int i = 0; i < EPOCHS; i++) {
+            log.info("Epoch " + i + " started");
+            multiLayerNetwork.fit(trainDataSetIterator);
+        }
 
         log.info("--------EVALUATE MODEL--------");
         imageRecordReader.reset();
@@ -82,7 +88,7 @@ public class PneumoniaDetection {
         multiLayerNetwork.doEvaluation(testDataSetIterator, eval, roc);
 
         log.info(eval.stats());
-        EvaluationTools.exportRocChartsToHtmlFile(roc, new File("rocPlotCustomNet.html"));
+        EvaluationTools.exportRocChartsToHtmlFile(roc, new File("rocPlotCustomNet80.html"));
 
         log.info("--------CLASSIFY--------");
 
