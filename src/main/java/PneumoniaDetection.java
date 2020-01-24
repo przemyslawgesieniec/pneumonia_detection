@@ -64,6 +64,7 @@ public class PneumoniaDetection {
         log.info("--------BUILD MODEL--------");
         final NeuralNetworkModelConfiguration neuralNetworkModelConfiguration
                 = new NeuralNetworkModelConfiguration(HEIGHT, WIDTH, CHANNELS, SEED, LABELS);
+
         final MultiLayerNetwork multiLayerNetwork =
                 new MultiLayerNetwork(neuralNetworkModelConfiguration.getCustomNet());
 
@@ -72,11 +73,13 @@ public class PneumoniaDetection {
         log.info("--------TRAIN MODEL--------");
         for (int i = 0; i < EPOCHS; i++) {
             log.info("Epoch " + i + " started");
-            multiLayerNetwork.fit(trainDataSetIterator);
+
+            multiLayerNetwork.fit(trainDataSetIterator, EPOCHS);
         }
 
         log.info("--------EVALUATE MODEL--------");
         imageRecordReader.reset();
+
         imageRecordReader.initialize(data.get(TEST));
         DataSetIterator testDataSetIterator = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, LABELS);
 

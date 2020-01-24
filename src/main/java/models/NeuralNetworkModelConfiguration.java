@@ -83,9 +83,6 @@ public class NeuralNetworkModelConfiguration {
 
     private ZooModel getVGG16() {
         return VGG16.builder()
-//                    .inputShape(new int[]{channels, width, height})
-//                    .seed(seed)
-//                    .numClasses(numClasses)
                     .build();
     }
 
@@ -245,7 +242,7 @@ public class NeuralNetworkModelConfiguration {
                         .name("conv1b4")
                         .cudnnAlgoMode(ConvolutionLayer.AlgoMode.PREFER_FASTEST)
                         .convolutionMode(ConvolutionMode.Same)
-                        .nOut(1024)
+                        .nOut(512)
                         .build())
                 .layer(22, new BatchNormalization())
                 .layer(23, new ActivationLayer.Builder().activation(Activation.RELU).build())
@@ -253,7 +250,7 @@ public class NeuralNetworkModelConfiguration {
                         .name("conv2b4")
                         .cudnnAlgoMode(ConvolutionLayer.AlgoMode.PREFER_FASTEST)
                         .convolutionMode(ConvolutionMode.Same)
-                        .nOut(1024)
+                        .nOut(512)
                         .build())
                 .layer(25, new BatchNormalization())
                 .layer(26, new ActivationLayer.Builder().activation(Activation.RELU).build())
@@ -289,7 +286,7 @@ public class NeuralNetworkModelConfiguration {
                 //CONDENSATION
                 .layer(35, new DenseLayer.Builder()
                         .name("ffn1")
-                        .nIn(200704)
+                        .nIn(50176)
                         .nOut(512)
 //                        .weightInit(new NormalDistribution(0, 0.005))
                         .weightInit(new WeightInitXavier())
